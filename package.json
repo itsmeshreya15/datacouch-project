@@ -1,0 +1,28 @@
+{
+  "name": "ai-code-analyzer",
+  "version": "1.0.0",
+  "description": "AI-Powered Code Analyzer - Detects security vulnerabilities in code snippets using Google Gemini AI and Inngest background processing",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "inngest-dev": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "test": "node src/test/testAnalyzer.js"
+  },
+  "keywords": [
+    "ai",
+    "security",
+    "code-analysis",
+    "inngest",
+    "gemini"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "inngest": "^4.23.0",
+    "pptxgenjs": "^4.0.1"
+  }
+}

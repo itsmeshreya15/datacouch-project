@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Code Analyzer — Security Vulnerability Scanner</title>
+  <meta name="description" content="AI-Powered Code Security Analyzer using Google Gemini AI." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 48px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-logo {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+
+    .topbar-logo span { color: #7c6cf0; }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: #30363d;
+    }
+
+    .topbar-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: rgba(124, 108, 240, 0.15);
+      color: #a78bfa;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-panel {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #30363d;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+
+    .panel-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .editor-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .line-numbers {
+      width: 48px;
+      padding: 16px 0;
+      background: #0d1117;
+      border-right: 1px solid #21262d;
+      text-align: right;
+      user-select: none;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .line-numbers div {
+      padding: 0 12px 0 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 22px;
+      color: #484f58;
+    }
+
+    #code-input {
+      flex: 1;
+      padding: 16px;
+      background: #0d1117;
+      border: none;
+      color: #e6edf3;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 22px;
+      resize: none;
+      outline: none;
+      overflow-y: auto;
+    }
+
+    #code-input::placeholder { color: #484f58; }
+
+    #code-input::-webkit-scrollbar { width: 5px; }
+    #code-input::-webkit-scrollbar-track { background: transparent; }
+    #code-input::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+
+    #language-select {
+      padding: 6px 28px 6px 10px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #e6edf3;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+
+    #analyze-btn {
+      padding: 7px 20px;
+      min-width: 120px;
+      background: #7c6cf0;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    #analyze-btn:hover:not(:disabled) { background: #6c5ce7; }
+    #analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .sample-btns {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .sample-btn {
+      padding: 5px 10px;
+      background: transparent;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      color: #8b949e;
+      font-size: 11px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sample-btn:hover {
+      border-color: #7c6cf0;
+      color: #a78bfa;
+    }
+
+    .results-panel {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .results-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .results-body::-webkit-scrollbar { width: 5px; }
+    .results-body::-webkit-scrollbar-track { background: transparent; }
+    .results-body::-webkit
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      color: #484f58;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .empty-state .icon { font-size: 36px; opacity: 0.5; }
+    .empty-state p { font-size: 13px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      color: #58a6ff;
+      text-align: center;
+      gap: 14px;
+    }
+
+    .loading-state .big-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(88, 166, 255, 0.15);
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-state p { font-size: 13px; font-weight: 500; }
+
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      color: #f85149;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .error-state p { font-size: 13px; }
+
+    .risk-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    .risk-CRITICAL { background: rgba(220,38,38,0.1); color: #f87171; border: 1px solid rgba(220,38,38,0.2); }
+    .risk-HIGH { background: rgba(251,146,60,0.1); color: #fb923c; border: 1px solid rgba(251,146,60,0.2); }
+    .risk-MEDIUM { background: rgba(250,204,21,0.1); color: #facc15; border: 1px solid rgba(250,204,21,0.2); }
+    .risk-LOW { background: rgba(96,165,250,0.1); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); }
+    .risk-SAFE { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+
+    .summary {
+      color: #8b949e;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .finding {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #21262d;
+      animation: fadeIn 0.3s ease backwards;
+    }
+
+    .finding:last-child { border-bottom: none; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .finding-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .finding-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+
+    .sev-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .sev-CRITICAL { background: rgba(220,38,38,0.15); color: #f87171; }
+    .sev-HIGH { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .sev-MEDIUM { background: rgba(250,204,21,0.15); color: #facc15; }
+    .sev-LOW { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+    .finding-text {
+      color: #8b949e;
+      font-size: 13px;
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+
+    .code-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6e7681;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .code-block {
+      background: #161b22;
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #e6edf3;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+    }
+
+    .code-block.bad { border-left: 3px solid #f85149; }
+    .code-block.good { border-left: 3px solid #3fb950; }
+
+    .fix-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 12px;
+      color: #3fb950;
+      line-height: 1.5;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      background: #161b22;
+      border-radius: 6px;
+      border: 1px solid #21262d;
+    }
+
+    .stat-val { font-size: 20px; font-weight: 700; }
+    .stat-lbl { font-size: 10px; color: #6e7681; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    .safe-result {
+      text-align: center;
+      padding: 48px 0;
+    }
+
+    .safe-result .icon { font-size: 40px; margin-bottom: 10px; }
+    .safe-result .title { font-size: 16px; font-weight: 600; color: #3fb950; }
+    .safe-result .sub { font-size: 12px; color: #6e7681; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">🛡️ AI Code <span>Analyzer</span></span>
+      <div class="topbar-divider"></div>
+      <span class="topbar-tag">Gemini AI</span>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:11px;color:#6e7681;">DataCouch Lab</span>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div class="editor-panel">
+      <div class="controls-bar" style="border-top:none;border-bottom:1px solid #30363d;justify-content:center;">
+        <button id="analyze-btn" onclick="analyzeCode()">
+          <span id="btn-text">▶ Analyze</span>
+        </button>
+      </div>
+      <div class="editor-body">
+        <div class="line-numbers" id="line-numbers"></div>
+        <textarea id="code-input" placeholder="// Paste your code here..." spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="results-panel">
+      <div class="results-body" id="results-body">
+        <div class="empty-state">
+          <div class="icon">🔐</div>
+          <p style="font-weight:500;color:#8b949e;">No analysis yet</p>
+          <p>Paste your code on the left, then click <strong style="color:#a78bfa;">▶ Analyze</strong></p>
+          <div style="margin-top:24px;text-align:center;">
+            <p style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#484f58;margin-bottom:12px;">Try these examples</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+              <button class="sample-btn" onclick="loadSample('sql')">SQL Injection</button>
+              <button class="sample-btn" onclick="loadSample('xss')">XSS Attack</button>
+              <button class="sample-btn" onclick="loadSample('secrets')">Hardcoded Secrets</button>
+              <button class="sample-btn" onclick="loadSample('safe')">Safe Code</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = window.location.origin;
+    const codeInput = document.getElementById('code-input');
+    const lineNums = document.getElementById('line-numbers');
+
+    function updateLineNumbers() {
+      const lines = codeInput.value.split('\n').length;
+      let html = '';
+      for (let i = 1; i <= lines; i++) {
+        html += `<div>${i}</div>`;
+      }
+      lineNums.innerHTML = html;
+    }
+
+    codeInput.addEventListener('input', updateLineNumbers);
+    codeInput.addEventListener('scroll', () => { lineNums.scrollTop = codeInput.scrollTop; });
+    updateLineNumbers();
+
+    const samples = {
+      sql: `const express = require('express');\nconst mysql = require('mysql');\n\nconst app = express();\nconst db = mysql.createConnection({\n  host: 'localhost',\n  user: 'root',\n  password: 'admin123',\n  database: 'users_db'\n});\n\napp.get('/user', (req, res) => {\n  const userId = req.query.id;\n  const query = "SELECT * FROM users WHERE id = '" + userId + "'";\n  db.query(query, (err, results) => {\n    res.json(results);\n  });\n});\n\napp.listen(3000);`,
+      xss: `const express = require('express');\nconst app = express();\n\napp.get('/search', (req, res) => {\n  const q = req.query.q;\n  res.send('<h1>Results for: ' + q + '</h1>');\n});\n\napp.get('/profile', (req, res) => {\n  const name = req.query.name;\n  res.send(\`<div>Welcome, \${name}!</div>\`);\n});\n\napp.listen(3000);`,
+      secrets: `const AWS = require('aws-sdk');\nconst jwt = require('jsonwebtoken');\n\nconst API_KEY = 'sk-abc123def456ghi789';\nconst DB_PASSWORD = 'SuperSecret123!';\nconst JWT_SECRET = 'my-secret-key';\n\nconst s3 = new AWS.S3({\n  accessKeyId: 'AKIAIOSFODNN7EXAMPLE',\n  secretAccessKey: 'wJalrXUtnFEMI/K7MDENG'\n});\n\nfunction generateToken(user) {\n  return jwt.sign({ id: user.id }, JWT_SECRET);\n}`,
+      safe: `const express = require('express');\nconst helmet = require('helmet');\nconst rateLimit = require('express-rate-limit');\nconst { body, validationResult } = require('express-validator');\n\nconst app = express();\napp.use(helmet());\napp.use(express.json({ limit: '10kb' }));\n\nconst limiter = rateLimit({\n  windowMs: 15 * 60 * 1000,\n  max: 100\n});\napp.use(limiter);\n\napp.post('/api/data',\n  body('email').isEmail().normalizeEmail(),\n  body('name').trim().escape(),\n  (req, res) => {\n    const errors = validationResult(req);\n    if (!errors.isEmpty()) {\n      return res.status(400).json({ errors: errors.array() });\n    }\n    res.json({ success: true });\n  }\n);`
+    };
+
+    function loadSample(key) {
+      codeInput.value = samples[key];
+      updateLineNumbers();
+    }
+
+    function showLoader(msg) {
+      document.getElementById('results-body').innerHTML = `
+        <div class="loading-state">
+          <div class="big-spinner"></div>
+          <p>${msg}</p>
+        </div>`;
+    }
+    function showError(msg) {
+      document.getElementById('results-body').innerHTML = `
+        <div class="error-state">
+          <div style="font-size:28px;">⚠️</div>
+          <p>${msg}</p>
+        </div>`;
+    }
+
+    async function analyzeCode() {
+      const code = codeInput.value.trim();
+      const btn = document.getElementById('analyze-btn');
+      const btnText = document.getElementById('btn-text');
+
+      if (!code) {
+        showError('Paste some code first');
+        return;
+      }
+
+      btn.disabled = true;
+      btnText.innerHTML = '<div class="spinner"></div> Analyzing...';
+      showLoader('AI is analyzing your code...');
+
+      try {
+        const res = await fetch(`${API}/api/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language: 'auto' }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        let attempts = 0;
+        while (attempts < 40) {
+          await new Promise(r => setTimeout(r, 2000));
+          attempts++;
+          const s = await fetch(`${API}/api/status/${data.jobId}`);
+          const sd = await s.json();
+
+          if (sd.status === 'completed') {
+            renderResults(sd.analysis);
+            return;
+          }
+          if (sd.status === 'failed') throw new Error(sd.error || 'Failed');
+        }
+        throw new Error('Timed out');
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        btn.disabled = false;
+        btnText.innerHTML = '▶ Analyze';
+      }
+    }
+    function renderResults(a) {
+      const c = document.getElementById('results-body');
+      const findings = a.findings || [];
+      const risk = a.riskLevel || 'UNKNOWN';
+      const emoji = { CRITICAL:'🔴', HIGH:'🟠', MEDIUM:'🟡', LOW:'🔵', SAFE:'🟢' };
+      let h = '';
+
+      h += `<div class="risk-strip risk-${risk}">${emoji[risk]||'⚪'} Risk Level: ${risk}</div>`;
+
+      if (a.summary) h += `<p class="summary">${a.summary}</p>`;
+
+      h += `<div class="stats-row">
+        <div class="stat"><div class="stat-val">${a.totalVulnerabilities||0}</div><div class="stat-lbl">Issues</div></div>
+        <div class="stat"><div class="stat-val">${findings.filter(f=>f.severity==='CRITICAL'||f.severity==='HIGH').length}</div><div class="stat-lbl">Critical / High</div></div>
+        <div class="stat"><div class="stat-val">${a.analyzedLanguage||'—'}</div><div class="stat-lbl">Language</div></div>
+      </div>`;
+
+      if (!findings.length) {
+        h += `<div class="safe-result"><div class="icon">✅</div><div class="title">No Vulnerabilities Found</div><div class="sub">This code follows security best practices.</div></div>`;
+      } else {
+        findings.forEach((f, i) => {
+          h += `<div class="finding" style="animation-delay:${i*0.08}s">
+            <div class="finding-header">
+              <span class="finding-name">${f.id||i+1}. ${f.vulnerability}</span>
+              <span class="sev-badge sev-${f.severity}">${f.severity}</span>
+            </div>
+            <p class="finding-text">${f.explanation}</p>
+            ${f.vulnerableCode ? `<div class="code-label">✕ Vulnerable Code</div><pre class="code-block bad">${esc(f.vulnerableCode)}</pre>` : ''}
+            ${f.fixedCode ? `<div class="code-label">✓ Recommended Fix</div><pre class="code-block good">${esc(f.fixedCode)}</pre>` : ''}
+            ${f.recommendation ? `<div class="fix-tip">💡 ${f.recommendation}</div>` : ''}
+          </div>`;
+        });
+      }
+      c.innerHTML = h;
+      c.scrollTop = 0;
+    }
+
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  </script>
+</body>
+</html>
